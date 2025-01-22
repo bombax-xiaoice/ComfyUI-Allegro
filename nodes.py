@@ -407,7 +407,7 @@ class AllegroTI2VSampler:
                 "width": ("INT", {"default":1280,}),
                 "height": ("INT", {"default":720,}),
                 "steps": ("INT", {"default":100, "min": 1, "max": 200, "step": 1}),
-                "guidance": ("FLOAT", {"default":7.5, "min": 0.0, "max": 20.0, "step": 0.5}),
+                "guidance": ("FLOAT", {"default":8, "min": 0.0, "max": 20.0, "step": 0.5}),
                 "seed": ("INT", {"default":0}),
                 "low_vram_mode": ("BOOLEAN", {"default":False}),
             },
@@ -523,13 +523,17 @@ class AllegroTI2VEncoder:
             else:
                 vae = vae.to(device = device, dtype = dtype)
 
-        ref_images_indices = [0] if ref_images.shape[0]==1 else [0, -1] if ref_images.shape[0]==2 else list(range(0, frames, (frames-1)//(ref_images.shape[0]-1)))
-        if indices:
-            for k, token in enumerate(indices.replace(' ','').split(',')):
-                if token and (str.isdigit(token) or token[0]=='-' and str.isdigit(token[1:])):
-                    index = int(token)
-                    if -frames < index < frames:
-                        ref_images_indices[k] = index
+        if ref_images.shape[0] > frames:
+            ref_images = ref_images[[int(round(i*(ref_images.shape[0]-1)/(frames-1))) for i in range(frames)]:,:,:]
+            ref_images_indices = list(range(frames))
+        else:
+            ref_images_indices = [0] if ref_images.shape[0]==1 else [0, -1] if ref_images.shape[0]==2 else [int(round(i*(frames-1)/(ref_images.shape[0]-1))) for i in range(ref_images.shape[0])]
+            if indices:
+                for k, token in enumerate(indices.replace(' ','').split(',')):
+                    if token and (str.isdigit(token) or token[0]=='-' and str.isdigit(token[1:])):
+                        index = int(token)
+                        if -frames < index < frames:
+                            ref_images_indices[k] = index
         if ref_images.device != device or ref_images.dtype != dtype:
             ref_images = ref_images.to(device = device, dtype = dtype)
 
